@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 import mysql.connector
 from pandas import read_csv
-from create_read_config_mysql import read_config,get_absolute_path
+from lib_synergy import create_config,read_config,get_absolute_path,start_mysql_service
 
 def get_valid_string(prompt):
     while True:
@@ -16,15 +16,17 @@ def get_valid_string(prompt):
 
 def mysql_insert_record(first_name,last_name,training):
 
-    try:
-        mydb = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password=read_config()['my_sql_password'],
-            database="synergy"
-        )
+    mydb = mysql.connector.connect(
+        host="localhost",
+        #port="3307",
+        user="root",
+        password=read_config()['my_sql_password'],
+        database="synergy"
+    )
 
-        mycursor = mydb.cursor()
+    mycursor = mydb.cursor()
+
+    try:
 
         sql = "INSERT INTO synergy.training (FirstName,LastName,TrainingName) VALUES (%s, %s, %s)"
         val = (first_name,last_name,training)
@@ -37,10 +39,10 @@ def mysql_insert_record(first_name,last_name,training):
     except mysql.connector.Error as e:
         print(f"Error while connecting to MySQL: {e}")
 
-    # finally:
-    #     if mydb.is_connected():
-    #         mycursor.close()
-    #         mydb.close()
+    finally:
+        if mydb.is_connected():
+            mycursor.close()
+            mydb.close()
     
 def get_training_csv():
 
@@ -77,24 +79,37 @@ def file_copy_rename():
 
 # Function to display the selected name and training option, then exit
 def submit_and_exit():
-    first_name = first_name_entry.get()
-    last_name = last_name_entry.get()
-    selected_training = combo_box.get()
     
-    if first_name and last_name and selected_training:
-        # Print the values to the console
-        print(f"First Name: {first_name}")
-        print(f"Last Name: {last_name}")
-        print(f"Training Option: {selected_training}")
+    try:
+    
+        first_name = first_name_entry.get()
+        last_name = last_name_entry.get()
+        selected_training = combo_box.get()
         
-        mysql_insert_record(first_name,last_name,selected_training)
-        
-        # Exit the program after submitting
+        if first_name and last_name and selected_training:
+            # Print the values to the console
+            print(f"First Name: {first_name}")
+            print(f"Last Name: {last_name}")
+            print(f"Training Option: {selected_training}")
+            
+            mysql_insert_record(first_name,last_name,selected_training)
+            
+            # Exit the program after submitting
+            root.quit() # This will exit the tkinter main loop
+            root.destroy() # This will close the window
+            
+        else:
+            result_label.config(text="Please enter both names and select a training option.")
+
+    except Exception as e:
+        print(f"An error occurred : {e}")
         root.quit() # This will exit the tkinter main loop
         root.destroy() # This will close the window
-        
-    else:
-        result_label.config(text="Please enter both names and select a training option.")
+
+#Start
+
+#Attempt to start mysql windows service
+start_mysql_service()
 
 # Creating the main window
 root = tk.Tk()
